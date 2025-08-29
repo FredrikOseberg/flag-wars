@@ -93,6 +93,7 @@ let lastBatchUpdate = Date.now();
 const batchUpdater = setInterval(() => {
   if (updateBatch.size > 0 && Date.now() - lastBatchUpdate >= UPDATE_RATE) {
     const updates = Array.from(updateBatch.values());
+    console.log(`[Server] Sending batch update with ${updates.length} player updates`);
     io.emit('batch-update', updates);
     updateBatch.clear();
     lastBatchUpdate = Date.now();
@@ -204,7 +205,8 @@ io.on('connection', (socket) => {
         id: socket.id,
         x: player.x,
         y: player.y,
-        shields: player.shields
+        shields: player.shields,
+        isAlive: player.isAlive
       });
     }
   });

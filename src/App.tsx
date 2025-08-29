@@ -70,6 +70,7 @@ const App: React.FC = () => {
 
     // Handle batch updates for better performance
     newSocket.on('batch-update', (updates: any[]) => {
+      console.log(`[Client] Received batch update with ${updates.length} updates`);
       setGameState(prev => {
         const newState = { ...prev };
         let hasChanges = false;
@@ -81,6 +82,7 @@ const App: React.FC = () => {
             if (player.x !== update.x || player.y !== update.y || 
                 player.shields !== update.shields || player.isAlive !== update.isAlive) {
               hasChanges = true;
+              console.log(`[Client] Updating player ${update.id}: x=${update.x?.toFixed(2)}, y=${update.y?.toFixed(2)}`);
               newState.players[playerIndex] = {
                 ...player,
                 ...update
