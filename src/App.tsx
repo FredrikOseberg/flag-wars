@@ -5,6 +5,9 @@ import { EnhancedCanvasGame } from './components/EnhancedCanvasGame';
 import { Scoreboard } from './components/Scoreboard';
 import { Player, GameState, ScoreboardEntry, Shield } from './types';
 
+// Global socket instance to prevent multiple connections
+let globalSocket: Socket | null = null;
+
 const App: React.FC = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [gameState, setGameState] = useState<GameState>({
@@ -20,6 +23,12 @@ const App: React.FC = () => {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
 
   useEffect(() => {
+    // Use existing socket if available
+    if (globalSocket) {
+      console.log('Using existing socket connection');
+      setSocket(globalSocket);
+      return;
+    }
     // Use relative URL for production, absolute for development
     const socketUrl = window.location.hostname === 'localhost'
       ? 'http://localhost:3001' // Development server
@@ -35,6 +44,8 @@ const App: React.FC = () => {
       autoConnect: true,
       multiplex: false // Prevent multiple connections
     });
+    
+    globalSocket = newSocket; // Store globally
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
@@ -180,9 +191,8 @@ const App: React.FC = () => {
     });
 
     return () => {
-      console.log('Cleaning up socket connection');
-      newSocket.removeAllListeners();
-      newSocket.disconnect();
+      // Don't disconnect on unmount to prevent reconnection spam
+      console.log('Component unmounting, keeping socket alive');
     };
   }, []); // Empty array - only connect once!
 
