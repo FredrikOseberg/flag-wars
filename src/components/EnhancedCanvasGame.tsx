@@ -265,7 +265,10 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
       animationFrameRef.current = requestAnimationFrame(gameLoop);
     };
 
-    gameLoop();
+    // Only start game loop if we have keys pressed or velocity
+    if (keys.size > 0 || Math.abs(velocityRef.current.vx) > 0.1 || Math.abs(velocityRef.current.vy) > 0.1) {
+      gameLoop();
+    }
 
     return () => {
       if (animationFrameRef.current) {

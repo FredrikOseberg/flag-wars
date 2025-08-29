@@ -411,8 +411,9 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-httpServer.listen(PORT, () => {
-  console.log(`Optimized Feature Flag Game running on port ${PORT}`);
+const HOST = '0.0.0.0'; // Important for Railway
+httpServer.listen(Number(PORT), HOST, () => {
+  console.log(`Optimized Feature Flag Game running on ${HOST}:${PORT}`);
   console.log(`Ready for 30+ concurrent players!`);
 });
 

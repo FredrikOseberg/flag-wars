@@ -20,11 +20,17 @@ const App: React.FC = () => {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
 
   useEffect(() => {
+    // Use relative URL for production, absolute for development
     const socketUrl = process.env.NODE_ENV === 'production' 
-      ? window.location.origin 
+      ? '' // Empty string means same origin
       : 'http://localhost:3000';
     
-    const newSocket = io(socketUrl);
+    const newSocket = io(socketUrl, {
+      transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
     setSocket(newSocket);
 
     newSocket.on('connect', () => {

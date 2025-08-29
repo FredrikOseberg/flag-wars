@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: flag-wars-game
+    runtime: node
+    buildCommand: npm install && npm run build:all
+    startCommand: node dist/optimized-server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
