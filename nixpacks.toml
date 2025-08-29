@@ -1,3 +1,4 @@
+# Railway deployment configuration
 [phases.setup]
 nixPkgs = ["nodejs-18_x", "npm-9_x"]
 
@@ -8,4 +9,4 @@ cmds = ["npm ci"]
 cmds = ["npm run build:all"]
 
 [start]
-cmd = "node dist/optimized-server.js"
+cmd = "NODE_ENV=production node dist/optimized-server.js"

@@ -12,9 +12,10 @@
     "build:server": "tsc server.ts --outDir dist --esModuleInterop --skipLibCheck",
     "build:optimized": "tsc optimized-server.ts --outDir dist --esModuleInterop --skipLibCheck",
     "build:all": "npm run build:client && npm run build:optimized",
-    "start": "node dist/server.js",
+    "start": "node dist/optimized-server.js",
     "start:optimized": "node dist/optimized-server.js",
     "start:prod": "node dist/optimized-server.js",
+    "railway:start": "npm run build:all && node dist/optimized-server.js",
     "vercel-build": "npm run build:all",
     "heroku-postbuild": "npm run build:all",
     "test": "echo \"Error: no test specified\" && exit 1"

@@ -1,29 +1,12 @@
 # Deployment Guide
 
-## 🐳 Docker Deployment (Fixed Movement Issues)
+## 🚂 Railway Deployment (Recommended - No Docker!)
 
-### Quick Local Test
-```bash
-# Build and run locally
-./deploy.sh local
+Railway now deploys directly using Node.js (no Docker required!) just like your development environment.
 
-# Or manually:
-docker build -t feature-flag-game .
-docker run -p 3000:3000 feature-flag-game
-```
-
-Open http://localhost:3000 to play!
-
-### Deploy to Any Server
-```bash
-# Build and push to Docker Hub
-./deploy.sh push your-dockerhub-username
-
-# On your server:
-docker run -d -p 3000:3000 your-dockerhub-username/feature-flag-game
-```
-
-## 🚂 Quick Deploy to Railway (Recommended)
+### Prerequisites
+- GitHub account
+- Railway account (sign up at [railway.app](https://railway.app))
 
 Railway provides the simplest deployment with WebSocket support, automatic SSL, and a free tier.
 
@@ -52,9 +35,10 @@ git push -u origin main
 4. Authorize Railway to access your GitHub
 5. Select your `feature-flag-game` repository
 6. Railway will automatically:
-   - Detect Node.js project
-   - Run `npm run build:all`
-   - Start with `node dist/optimized-server.js`
+   - Use Nixpacks (not Docker)
+   - Install dependencies with `npm ci`
+   - Build with `npm run build:all`
+   - Start with `NODE_ENV=production node dist/optimized-server.js`
    - Provide a URL like `https://feature-flag-game.up.railway.app`
 
 ### Step 3: Environment Variables (Optional)
@@ -107,18 +91,36 @@ If deployment fails:
 2. Ensure `npm run build:all` works locally
 3. Verify all dependencies are in package.json
 
-## 🔧 Movement Fix Notes
+## 🎮 Why No Docker?
 
-The Docker deployment movement issue has been fixed by:
-1. Ensuring gameLoop only runs when keys are pressed or velocity exists
-2. Proper WebSocket configuration for production
-3. Correct static file serving in Express
+We're using Railway's native Node.js support because:
+1. The development version works perfectly
+2. Simpler deployment (no Docker build required)
+3. Faster deployments
+4. Same environment as development
+5. Movement and WebSocket connections work reliably
 
-If movement still doesn't work:
-1. Check browser console for errors
-2. Ensure WebSocket connection is established (look for "Connected to server" in console)
-3. Try both WASD and arrow keys
-4. Verify the server is running on the correct port
+## 🔧 Local Testing
+
+```bash
+# Test production build locally
+npm run build:all
+NODE_ENV=production PORT=3000 npm start
+```
+
+Open http://localhost:3000 to test
+
+## 🐳 Docker Deployment (Alternative)
+
+If you prefer Docker:
+```bash
+# Rename Dockerfile.backup back to Dockerfile
+mv Dockerfile.backup Dockerfile
+
+# Build and run
+docker build -t feature-flag-game .
+docker run -p 3000:3000 feature-flag-game
+```
 
 ## Alternative Platforms
 
