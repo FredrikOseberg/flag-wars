@@ -21,15 +21,19 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Use relative URL for production, absolute for development
-    const socketUrl = process.env.NODE_ENV === 'production' 
-      ? '' // Empty string means same origin
-      : 'http://localhost:3001';
+    const socketUrl = window.location.hostname === 'localhost'
+      ? 'http://localhost:3001' // Development server
+      : ''; // Production - use same origin
+    
+    console.log('Connecting to:', socketUrl || 'same origin');
     
     const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
+      autoConnect: true,
+      multiplex: false // Prevent multiple connections
     });
     setSocket(newSocket);
 
@@ -176,9 +180,11 @@ const App: React.FC = () => {
     });
 
     return () => {
+      console.log('Cleaning up socket connection');
+      newSocket.removeAllListeners();
       newSocket.disconnect();
     };
-  }, []);
+  }, []); // Empty array - only connect once!
 
   const handleJoinGame = (name: string) => {
     if (socket) {

@@ -100,7 +100,8 @@ const batchUpdater = setInterval(() => {
 }, UPDATE_RATE / 2);
 
 io.on('connection', (socket) => {
-  console.log('Player connected:', socket.id);
+  const clientAddress = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+  console.log(`Player connected: ${socket.id} from ${clientAddress}`);
 
   socket.on('join-game', (playerName: string) => {
     const isHost = gameState.players.size === 0;
