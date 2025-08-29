@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+body {
+  background: linear-gradient(to bottom right, #111827, #581c87, #5b21b6);
+  min-height: 100vh;
+  color: white;
+}
+
+@layer components {
+  .flag-card {
+    @apply bg-white/10 backdrop-blur-md rounded-lg p-4 border border-white/20 transition-all hover:scale-105;
+  }
+  
+  .btn-primary {
+    @apply bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 active:scale-95;
+  }
+  
+  .btn-secondary {
+    @apply bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold py-2 px-4 rounded-lg transition-all;
+  }
+}
+
+@keyframes archiveAnimation {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2) rotate(10deg);
+  }
+  100% {
+    transform: scale(0) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.archiving {
+  animation: archiveAnimation 1s ease-out forwards;
+}
