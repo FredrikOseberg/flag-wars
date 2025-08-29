@@ -450,15 +450,26 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
         const player = gameState.players.find(p => p.id === playerId);
         if (!player) return;
 
-        // Smooth interpolation
-        const lerpSpeed = 0.15;
-        interp.currentX += (interp.targetX - interp.currentX) * lerpSpeed;
-        interp.currentY += (interp.targetY - interp.currentY) * lerpSpeed;
+        // For current player, use local position (immediate feedback)
+        // For other players, use interpolated server positions
+        let renderX, renderY;
+        if (player.id === currentPlayer?.id) {
+          // Use local position for immediate feedback
+          renderX = playerPosRef.current.x;
+          renderY = playerPosRef.current.y;
+        } else {
+          // Smooth interpolation for other players
+          const lerpSpeed = 0.15;
+          interp.currentX += (interp.targetX - interp.currentX) * lerpSpeed;
+          interp.currentY += (interp.targetY - interp.currentY) * lerpSpeed;
+          renderX = interp.currentX;
+          renderY = interp.currentY;
+        }
 
         if (!player.isAlive) {
-          renderDeadPlayer(ctx, player, interp.currentX, interp.currentY);
+          renderDeadPlayer(ctx, player, renderX, renderY);
         } else {
-          renderPlayer(ctx, player, interp.currentX, interp.currentY, player.id === currentPlayer?.id);
+          renderPlayer(ctx, player, renderX, renderY, player.id === currentPlayer?.id);
         }
       });
 
