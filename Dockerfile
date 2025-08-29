@@ -7,8 +7,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# Copy source code
+# Copy source code and public folder
 COPY . .
+# Ensure public folder exists
+RUN mkdir -p public
 
 # Build the application
 RUN npm run build:all
