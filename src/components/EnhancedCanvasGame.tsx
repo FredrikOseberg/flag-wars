@@ -746,7 +746,7 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
 
           {/* Player Info */}
           {currentPlayer && (
-            <div className="text-right bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 shadow-2xl">
+            <div className="text-right bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 shadow-2xl min-w-[180px]">
               <p className="text-lg font-bold text-white">{currentPlayer.name}</p>
               <div className="flex items-center justify-end gap-2 mt-2">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -755,10 +755,14 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
                     className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all transform ${
                       i < currentPlayer.shields 
                         ? 'bg-gradient-to-br from-blue-400 to-blue-600 scale-110 shadow-lg' 
-                        : 'bg-white/10 scale-100'
+                        : 'bg-white/5 border border-white/10 scale-100'
                     }`}
                   >
-                    {i < currentPlayer.shields ? '🛡️' : ''}
+                    {i < currentPlayer.shields ? (
+                      <span className="text-base">🛡️</span>
+                    ) : (
+                      <span className="text-white/20 text-xs">○</span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -771,11 +775,14 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
                   {currentPlayer.isAlive ? '● Active' : '● Archived'}
                 </span>
               </div>
-              {totalShieldsCollected > 0 && (
-                <p className="text-xs text-blue-300 mt-2">
-                  Collected: {totalShieldsCollected} 🛡️
-                </p>
-              )}
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-white/40">Shields: {currentPlayer.shields}/3</p>
+                {totalShieldsCollected > 0 && (
+                  <p className="text-xs text-blue-300">
+                    Total collected: {totalShieldsCollected}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>
