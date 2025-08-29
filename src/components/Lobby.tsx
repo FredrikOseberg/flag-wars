@@ -17,18 +17,19 @@ export const Lobby: React.FC<LobbyProps> = ({
   onResetGame
 }) => {
   const [playerName, setPlayerName] = useState('');
-  const [hasJoined, setHasJoined] = useState(false);
+  
+  // Use currentPlayer to determine if joined, not local state
+  const hasJoined = !!currentPlayer;
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
     if (playerName.trim()) {
       onJoinGame(playerName.trim());
-      setHasJoined(true);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900 flex items-center justify-center p-4">
       <div className="max-w-4xl w-full">
         <div className="text-center mb-8">
           <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">

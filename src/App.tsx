@@ -23,7 +23,7 @@ const App: React.FC = () => {
     // Use relative URL for production, absolute for development
     const socketUrl = process.env.NODE_ENV === 'production' 
       ? '' // Empty string means same origin
-      : 'http://localhost:3000';
+      : 'http://localhost:3001';
     
     const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
@@ -235,43 +235,40 @@ const App: React.FC = () => {
     );
   }
 
-  if (gameState.gameStatus === 'waiting') {
-    return (
-      <Lobby
-        gameState={gameState}
-        currentPlayer={currentPlayer}
-        onJoinGame={handleJoinGame}
-        onStartGame={handleStartGame}
-        onResetGame={handleResetGame}
-      />
-    );
-  }
-
-  if (gameState.gameStatus === 'playing') {
-    return (
-      <EnhancedCanvasGame
-        gameState={gameState}
-        currentPlayer={currentPlayer}
-        onPlayerMove={handlePlayerMove}
-        nextWaveIn={nextWaveIn}
-        currentRound={gameState.currentRound}
-      />
-    );
-  }
-
-  if (gameState.gameStatus === 'finished' && scoreboard.length > 0) {
-    return <Scoreboard scoreboard={scoreboard} onPlayAgain={handlePlayAgain} />;
-  }
-
-  // Default to lobby if connected but no specific game state
+  // Keep all components mounted to prevent DOM issues
   return (
-    <Lobby
-      gameState={gameState}
-      currentPlayer={currentPlayer}
-      onJoinGame={handleJoinGame}
-      onStartGame={handleStartGame}
-      onResetGame={handleResetGame}
-    />
+    <div className="min-h-screen">
+      {/* Lobby - show when waiting */}
+      <div style={{ display: gameState.gameStatus === 'waiting' ? 'block' : 'none' }}>
+        <Lobby
+          gameState={gameState}
+          currentPlayer={currentPlayer}
+          onJoinGame={handleJoinGame}
+          onStartGame={handleStartGame}
+          onResetGame={handleResetGame}
+        />
+      </div>
+
+      {/* Game - show when playing */}
+      <div style={{ display: gameState.gameStatus === 'playing' ? 'block' : 'none' }}>
+        {gameState.gameStatus === 'playing' && (
+          <EnhancedCanvasGame
+            gameState={gameState}
+            currentPlayer={currentPlayer}
+            onPlayerMove={handlePlayerMove}
+            nextWaveIn={nextWaveIn}
+            currentRound={gameState.currentRound}
+          />
+        )}
+      </div>
+
+      {/* Scoreboard - show when finished */}
+      <div style={{ display: gameState.gameStatus === 'finished' && scoreboard.length > 0 ? 'block' : 'none' }}>
+        {scoreboard.length > 0 && (
+          <Scoreboard scoreboard={scoreboard} onPlayAgain={handlePlayAgain} />
+        )}
+      </div>
+    </div>
   );
 };
 

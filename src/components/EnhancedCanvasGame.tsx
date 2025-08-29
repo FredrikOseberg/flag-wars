@@ -209,31 +209,43 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error('Failed to enter fullscreen:', err);
+      });
       setIsFullscreen(true);
     } else {
-      document.exitFullscreen();
+      document.exitFullscreen().catch(err => {
+        console.error('Failed to exit fullscreen:', err);
+      });
       setIsFullscreen(false);
     }
   }, []);
 
-  // Smooth movement with velocity
+  // Store keys in a ref to avoid effect restarts
+  const keysRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    keysRef.current = keys;
+  }, [keys]);
+
+  // Smooth movement with velocity - single persistent game loop
   useEffect(() => {
     if (!currentPlayer?.isAlive) {
-      console.log('Player not alive, skipping movement');
       return;
     }
 
     const moveSpeed = 0.5;
     const maxSpeed = 8;
     const friction = 0.85;
+    let running = true;
 
     const gameLoop = () => {
-      // Apply acceleration based on input
-      if (keys.has('ArrowUp') || keys.has('w')) velocityRef.current.vy -= moveSpeed;
-      if (keys.has('ArrowDown') || keys.has('s')) velocityRef.current.vy += moveSpeed;
-      if (keys.has('ArrowLeft') || keys.has('a')) velocityRef.current.vx -= moveSpeed;
-      if (keys.has('ArrowRight') || keys.has('d')) velocityRef.current.vx += moveSpeed;
+      if (!running) return;
+
+      // Apply acceleration based on input from ref
+      if (keysRef.current.has('ArrowUp') || keysRef.current.has('w')) velocityRef.current.vy -= moveSpeed;
+      if (keysRef.current.has('ArrowDown') || keysRef.current.has('s')) velocityRef.current.vy += moveSpeed;
+      if (keysRef.current.has('ArrowLeft') || keysRef.current.has('a')) velocityRef.current.vx -= moveSpeed;
+      if (keysRef.current.has('ArrowRight') || keysRef.current.has('d')) velocityRef.current.vx += moveSpeed;
 
       // Apply friction
       velocityRef.current.vx *= friction;
@@ -262,20 +274,20 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
         playerPosRef.current = { x: newX, y: newY };
       }
 
+      // Always continue the loop
       animationFrameRef.current = requestAnimationFrame(gameLoop);
     };
 
-    // Only start game loop if we have keys pressed or velocity
-    if (keys.size > 0 || Math.abs(velocityRef.current.vx) > 0.1 || Math.abs(velocityRef.current.vy) > 0.1) {
-      gameLoop();
-    }
+    // Start the persistent game loop
+    gameLoop();
 
     return () => {
+      running = false;
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [keys, currentPlayer, onPlayerMove, canvasSize]);
+  }, [currentPlayer, onPlayerMove, canvasSize]); // No keys dependency!
 
   // Update player interpolations for smooth multiplayer
   useEffect(() => {
@@ -358,6 +370,9 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
     };
 
     const render = () => {
+      // Safety check - ensure canvas still exists
+      if (!canvasRef.current || !backgroundCanvasRef.current) return;
+      
       // Clear main canvas
       ctx.fillStyle = 'rgba(10, 10, 31, 0.1)';
       ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
@@ -609,21 +624,23 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
         </div>
       </div>
 
-      {/* Canvas Layers */}
-      <canvas
-        ref={backgroundCanvasRef}
-        width={canvasSize.width}
-        height={canvasSize.height}
-        className="absolute inset-0"
-        style={{ zIndex: 1 }}
-      />
-      <canvas
-        ref={canvasRef}
-        width={canvasSize.width}
-        height={canvasSize.height}
-        className="absolute inset-0"
-        style={{ zIndex: 2 }}
-      />
+      {/* Canvas Container - isolates from React DOM manipulation */}
+      <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
+        <canvas
+          ref={backgroundCanvasRef}
+          width={canvasSize.width}
+          height={canvasSize.height}
+          className="absolute inset-0"
+          style={{ zIndex: 1 }}
+        />
+        <canvas
+          ref={canvasRef}
+          width={canvasSize.width}
+          height={canvasSize.height}
+          className="absolute inset-0"
+          style={{ zIndex: 2 }}
+        />
+      </div>
 
       {/* Death Overlay */}
       {currentPlayer && !currentPlayer.isAlive && (
