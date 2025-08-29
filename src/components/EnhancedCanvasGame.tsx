@@ -43,6 +43,11 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
   nextWaveIn = 10000,
   currentRound
 }) => {
+  // Store onPlayerMove in a ref to avoid restarting game loop
+  const onPlayerMoveRef = useRef(onPlayerMove);
+  useEffect(() => {
+    onPlayerMoveRef.current = onPlayerMove;
+  }, [onPlayerMove]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
   const [timeRemaining, setTimeRemaining] = useState(nextWaveIn);
@@ -176,12 +181,14 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      console.log('[Keyboard] Key down:', e.key);
       if (e.key === 'f' || e.key === 'F') {
         toggleFullscreen();
       } else if (e.key === '`') {
         setShowStats(prev => !prev);
       } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) {
         e.preventDefault();
+        console.log('[Keyboard] Movement key pressed:', e.key);
         setKeys(prev => {
           const newKeys = new Set(prev);
           newKeys.add(e.key);
@@ -229,7 +236,9 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
 
   // Smooth movement with velocity - single persistent game loop
   useEffect(() => {
+    console.log('[EnhancedCanvasGame] Movement effect triggered, alive:', currentPlayer?.isAlive);
     if (!currentPlayer?.isAlive) {
+      console.log('[EnhancedCanvasGame] Player not alive, skipping movement');
       return;
     }
 
@@ -237,9 +246,16 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
     const maxSpeed = 8;
     const friction = 0.85;
     let running = true;
+    let loopCount = 0;
 
     const gameLoop = () => {
       if (!running) return;
+      
+      // Debug: log every 60 frames (once per second at 60fps)
+      if (loopCount % 60 === 0) {
+        console.log('[GameLoop] Running, keys pressed:', Array.from(keysRef.current), 'Position:', playerPosRef.current);
+      }
+      loopCount++;
 
       // Apply acceleration based on input from ref
       if (keysRef.current.has('ArrowUp') || keysRef.current.has('w')) velocityRef.current.vy -= moveSpeed;
@@ -268,7 +284,11 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
       
       if (distanceMoved > 2 && now - lastUpdateRef.current > 50) {
         playerPosRef.current = { x: newX, y: newY };
-        onPlayerMove(newX, newY, velocityRef.current.vx, velocityRef.current.vy);
+        console.log('[Movement] Sending position update:', { x: newX, y: newY, vx: velocityRef.current.vx, vy: velocityRef.current.vy });
+        // Use the ref to avoid dependency issues
+        if (onPlayerMoveRef.current) {
+          onPlayerMoveRef.current(newX, newY, velocityRef.current.vx, velocityRef.current.vy);
+        }
         lastUpdateRef.current = now;
       } else if (distanceMoved > 0.1) {
         playerPosRef.current = { x: newX, y: newY };
@@ -279,15 +299,17 @@ export const EnhancedCanvasGame: React.FC<EnhancedCanvasGameProps> = ({
     };
 
     // Start the persistent game loop
+    console.log('[EnhancedCanvasGame] Starting game loop');
     gameLoop();
 
     return () => {
+      console.log('[EnhancedCanvasGame] Cleaning up game loop');
       running = false;
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [currentPlayer, onPlayerMove, canvasSize]); // No keys dependency!
+  }, [currentPlayer?.isAlive, canvasSize.width, canvasSize.height]); // Minimal dependencies to prevent restarts!
 
   // Update player interpolations for smooth multiplayer
   useEffect(() => {

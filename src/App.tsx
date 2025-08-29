@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Lobby } from './components/Lobby';
 import { EnhancedCanvasGame } from './components/EnhancedCanvasGame';
 import { Scoreboard } from './components/Scoreboard';
 import { Player, GameState, ScoreboardEntry, Shield } from './types';
 
-// Global socket instance to prevent multiple connections
-let globalSocket: Socket | null = null;
-
 const App: React.FC = () => {
+  const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [gameState, setGameState] = useState<GameState>({
     players: [],
@@ -22,35 +20,40 @@ const App: React.FC = () => {
   const [nextWaveIn, setNextWaveIn] = useState(10000);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
 
+  // Single useEffect to create socket connection ONCE
   useEffect(() => {
-    // Use existing socket if available
-    if (globalSocket) {
-      console.log('Using existing socket connection');
-      setSocket(globalSocket);
+    // Only create socket if we don't have one
+    if (socketRef.current) {
       return;
     }
-    // Use relative URL for production, absolute for development
-    const socketUrl = window.location.hostname === 'localhost'
+
+    // Determine socket URL based on environment
+    const isDevMode = window.location.port === '8080';
+    const socketUrl = isDevMode
       ? 'http://localhost:3001' // Development server
       : ''; // Production - use same origin
     
-    console.log('Connecting to:', socketUrl || 'same origin');
+    console.log('Creating ONE socket connection to:', socketUrl || `same origin (port ${window.location.port})`);
     
     const newSocket = io(socketUrl, {
-      transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
+      transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
-      autoConnect: true,
-      multiplex: false // Prevent multiple connections
+      autoConnect: true
     });
     
-    globalSocket = newSocket; // Store globally
+    socketRef.current = newSocket;
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      console.log('Connected to server');
+      console.log('[Socket] Connected to server, socket id:', newSocket.id);
       setConnectionStatus('connected');
+      // Re-emit current state if we have a player
+      if (currentPlayer) {
+        console.log('[Socket] Re-joining with existing player');
+        newSocket.emit('join-game', currentPlayer.name);
+      }
     });
 
     newSocket.on('disconnect', () => {
@@ -59,6 +62,7 @@ const App: React.FC = () => {
     });
 
     newSocket.on('player-joined', ({ player, isHost }) => {
+      console.log('[Socket] Player joined:', player);
       setCurrentPlayer(player);
     });
 
@@ -66,16 +70,23 @@ const App: React.FC = () => {
     newSocket.on('batch-update', (updates: any[]) => {
       setGameState(prev => {
         const newState = { ...prev };
+        let hasChanges = false;
         updates.forEach(update => {
           const playerIndex = newState.players.findIndex(p => p.id === update.id);
           if (playerIndex !== -1) {
-            newState.players[playerIndex] = {
-              ...newState.players[playerIndex],
-              ...update
-            };
+            // Only update if there are actual changes
+            const player = newState.players[playerIndex];
+            if (player.x !== update.x || player.y !== update.y || 
+                player.shields !== update.shields || player.isAlive !== update.isAlive) {
+              hasChanges = true;
+              newState.players[playerIndex] = {
+                ...player,
+                ...update
+              };
+            }
           }
         });
-        return newState;
+        return hasChanges ? newState : prev;
       });
     });
 
@@ -191,7 +202,7 @@ const App: React.FC = () => {
     });
 
     return () => {
-      // Don't disconnect on unmount to prevent reconnection spam
+      // Keep socket alive between component unmounts
       console.log('Component unmounting, keeping socket alive');
     };
   }, []); // Empty array - only connect once!
@@ -214,11 +225,15 @@ const App: React.FC = () => {
     }
   };
 
-  const handlePlayerMove = (x: number, y: number, vx?: number, vy?: number) => {
-    if (socket && currentPlayer?.isAlive) {
-      socket.emit('player-move', { x, y, vx, vy });
+  const handlePlayerMove = useCallback((x: number, y: number, vx?: number, vy?: number) => {
+    console.log('[App] handlePlayerMove called:', { x, y, vx, vy, hasSocket: !!socket, isAlive: currentPlayer?.isAlive });
+    if (socketRef.current && currentPlayer?.isAlive) {
+      console.log('[App] Emitting player-move to server');
+      socketRef.current.emit('player-move', { x, y, vx, vy });
+    } else {
+      console.log('[App] Cannot move - socket:', !!socketRef.current, 'alive:', currentPlayer?.isAlive);
     }
-  };
+  }, [currentPlayer?.isAlive]);
 
   const handlePlayAgain = () => {
     if (socket && currentPlayer) {
@@ -240,7 +255,7 @@ const App: React.FC = () => {
     );
   }
 
-  if (connectionStatus === 'connecting') {
+  if (connectionStatus === 'connecting' && !socket) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -252,8 +267,21 @@ const App: React.FC = () => {
   }
 
   // Keep all components mounted to prevent DOM issues
+  console.log('[App] Rendering game, status:', gameState.gameStatus, 'player:', currentPlayer?.name, 'socket:', !!socket);
+  
+  // Debug: Show what's happening
+  if (!socket) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">No socket connection</h2>
+        </div>
+      </div>
+    );
+  }
+  
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-900">
       {/* Lobby - show when waiting */}
       <div style={{ display: gameState.gameStatus === 'waiting' ? 'block' : 'none' }}>
         <Lobby
@@ -279,9 +307,16 @@ const App: React.FC = () => {
       </div>
 
       {/* Scoreboard - show when finished */}
-      <div style={{ display: gameState.gameStatus === 'finished' && scoreboard.length > 0 ? 'block' : 'none' }}>
-        {scoreboard.length > 0 && (
+      <div style={{ display: gameState.gameStatus === 'finished' ? 'block' : 'none' }}>
+        {scoreboard.length > 0 ? (
           <Scoreboard scoreboard={scoreboard} onPlayAgain={handlePlayAgain} />
+        ) : (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center text-white">
+              <h2 className="text-2xl font-bold mb-4">Game Finished</h2>
+              <p className="text-gray-400">Waiting for results...</p>
+            </div>
+          </div>
         )}
       </div>
     </div>

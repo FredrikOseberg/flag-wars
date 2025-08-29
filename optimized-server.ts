@@ -104,6 +104,7 @@ io.on('connection', (socket) => {
   console.log(`Player connected: ${socket.id} from ${clientAddress}`);
 
   socket.on('join-game', (playerName: string) => {
+    console.log(`[Server] Player joining: ${playerName} (socket: ${socket.id})`);
     const isHost = gameState.players.size === 0;
     const player: Player = {
       id: socket.id,
@@ -164,8 +165,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('player-move', ({ x, y, vx, vy }: { x: number; y: number; vx?: number; vy?: number }) => {
+    console.log(`[Server] player-move received from ${socket.id}:`, { x, y, vx, vy });
     const player = gameState.players.get(socket.id);
-    if (!player || !player.isAlive || gameState.gameStatus !== 'playing') return;
+    if (!player || !player.isAlive || gameState.gameStatus !== 'playing') {
+      console.log(`[Server] Move rejected - player: ${!!player}, alive: ${player?.isAlive}, status: ${gameState.gameStatus}`);
+      return;
+    }
 
     const now = Date.now();
     const timeSinceLastUpdate = now - player.lastUpdate;
