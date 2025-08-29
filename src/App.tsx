@@ -28,12 +28,14 @@ const App: React.FC = () => {
     }
 
     // Determine socket URL based on environment
-    const isDevMode = window.location.port === '8080';
-    const socketUrl = isDevMode
-      ? 'http://localhost:3001' // Development server
-      : ''; // Production - use same origin
+    // In development (localhost:8080), connect to separate dev server
+    // In production (any other case), connect to same origin
+    const isLocalDev = window.location.hostname === 'localhost' && window.location.port === '8080';
+    const socketUrl = isLocalDev
+      ? 'http://localhost:3001' // Development server on different port
+      : ''; // Production - use same origin (works with any port)
     
-    console.log('Creating ONE socket connection to:', socketUrl || `same origin (port ${window.location.port})`);
+    console.log('Creating ONE socket connection to:', socketUrl || `same origin (${window.location.host})`);
     
     const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
