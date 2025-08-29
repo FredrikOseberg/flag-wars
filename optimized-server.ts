@@ -12,14 +12,20 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
     origin: process.env.NODE_ENV === 'production' ? false : ['http://localhost:3000', 'http://localhost:8080'],
-    methods: ['GET', 'POST']
+    methods: ['GET', 'POST'],
+    credentials: true
   },
   pingInterval: 10000,
   pingTimeout: 5000,
-  transports: ['websocket', 'polling']
+  transports: ['websocket', 'polling'],
+  allowEIO3: true // Allow older Socket.IO clients
 });
 
-app.use(cors());
+// Configure CORS for production
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? false : true,
+  credentials: true
+}));
 app.use(express.json());
 // In production, static files are in ../public relative to dist folder
 const publicPath = process.env.NODE_ENV === 'production' 

@@ -42,7 +42,9 @@ const App: React.FC = () => {
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
-      autoConnect: true
+      autoConnect: true,
+      withCredentials: true,
+      forceNew: false
     });
     
     socketRef.current = newSocket;
