@@ -21,7 +21,11 @@ const io = new Server(httpServer, {
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+// In production, static files are in ../public relative to dist folder
+const publicPath = process.env.NODE_ENV === 'production' 
+  ? path.join(__dirname, '..', 'public')
+  : path.join(__dirname, 'public');
+app.use(express.static(publicPath));
 
 interface Player {
   id: string;
